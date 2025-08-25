@@ -4,8 +4,7 @@ import os
 
 class Settings(BaseSettings):
     API_V1_STR: str = '/api/v1'
-    DB_URL: str = 'mysql+asyncmy://root:root@127.0.0.1:3306/answer_requester_db'
-    DBBaseModel = declarative_base()
+    DB_URL: str = 'mysql+asyncmy://root:senai@127.0.0.1:3306/answer_requester_db'
 
     class Config:
         case_sensitive = False
