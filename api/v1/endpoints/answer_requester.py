@@ -13,12 +13,21 @@ router = APIRouter()
 async def post_request(answerRequest: ApiRequesterCreateSchema, db: AsyncSession = Depends(get_session)):
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.post("http://cap-ets.br.bosch.com:5678/v1/rag/ask", params={"question": answerRequest.request, "file_type": answerRequest.file_type})
+            token_response = await client.post("http://cap-ets.br.bosch.com:5678/v1/login/", json={"username": "ct67ca", "password": "ETSindustriaconectada@2"})
+            token_response.raise_for_status()
+            token_data = await token_response.json()
+            token = token_data.get("access_token", str(token_data))
+            headers = {
+                "Authorization": f"Bearer {token}"
+            }
+
+            response = await client.post("http://cap-ets.br.bosch.com:5678/v1/rag/ask", headers=headers, json={"question": answerRequest.request, "file_type": answerRequest.file_type})
             response.raise_for_status()
             external_data = await response.json()
-        except httpx.HTTPError as e:
-            raise HTTPException(status_code=502, detail=f"Answer API call failed: {str(e)}")
 
+        except httpx.HTTPError as e:
+            raise HTTPException(status_code=502, detail=f"Answer API call for authentication failed: {str(e)}")
+        
     answer_text_response = external_data.get("answer", str(external_data))
     
     answer_request_data = AnswerRequestModel(
