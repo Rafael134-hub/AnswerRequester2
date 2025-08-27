@@ -1,4 +1,6 @@
 from typing import List
+import json
+import requests
 from fastapi import APIRouter, status, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -13,19 +15,36 @@ router = APIRouter()
 async def post_request(answerRequest: ApiRequesterCreateSchema, db: AsyncSession = Depends(get_session)):
     async with httpx.AsyncClient() as client:
         try:
-            token_response = await client.post("http://cap-ets.br.bosch.com:5678/v1/login/", json={"username": "ct67ca", "password": "ETSindustriaconectada@2"})
+            form_data = {
+                "username": "ct67ca@bosch.com",
+                "password": "ETSindustriaconectada@1"
+            }
+            headersLogin = {"Content-Type": "application/x-www-form-urlencoded"}
+            token_response = await client.post("http://cap-ets.br.bosch.com:5678/v1/auth/token", data=form_data, headers=headersLogin)
             token_response.raise_for_status()
-            token_data = await token_response.json()
+            token_data = token_response.json()
+            print(f"TOKEN RESPONDE !!!: {token_data}")
             token = token_data.get("access_token", str(token_data))
-            headers = {
-                "Authorization": f"Bearer {token}"
+            print(f"TOKEN 2 !!!: {token}")
+            rag_headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
             }
 
-            response = await client.post("http://cap-ets.br.bosch.com:5678/v1/rag/ask", headers=headers, json={"question": answerRequest.request, "file_type": answerRequest.file_type})
-            response.raise_for_status()
-            external_data = await response.json()
+            answer_payload = {"question": answerRequest.request, "file_type": answerRequest.file_type}
+            
+            answer_payload = json.dumps(answer_payload)
+            
+            print(f"payload: {answer_payload}")
+            response = requests.post("http://cap-ets.br.bosch.com:5678/v1/rag/ask", data=answer_payload, headers=rag_headers)
+            # response = await client.post("http://cap-ets.br.bosch.com:5678/v1/rag/ask", headers=rag_headers, json=answer_payload)
+            print(f"RESPONDE PORRA!: {response}")
+            print(f"RESPONDE PORRA!: {response.text}")
+            # response.raise_for_status()
+            external_data = response.json()
 
-        except httpx.HTTPError as e:
+        except Exception as e:
+            print(f"EXCEPTION : {e}")
             raise HTTPException(status_code=502, detail=f"Answer API call for authentication failed: {str(e)}")
         
     answer_text_response = external_data.get("answer", str(external_data))
