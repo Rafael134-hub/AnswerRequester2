@@ -13,13 +13,13 @@ import re
 
 router = APIRouter()
 
-@router.post("/requests", status_code=status.HTTP_201_CREATED, response_model=ApiRequesterSchema)
-
 def converter_markdown(texto_markdown):
     markdown  = mistune.create_markdown(renderer=mistune.Renderer())
     texto_convertido = markdown(texto_markdown)
     texto_final_formatado = re.sub(r'[^\w\s,;.!?]', '', texto_convertido)
     return texto_final_formatado
+
+@router.post("/requests", status_code=status.HTTP_201_CREATED, response_model=ApiRequesterSchema)
 
 async def post_request(answerRequest: ApiRequesterCreateSchema, db: AsyncSession = Depends(get_session)):
     async with httpx.AsyncClient() as client:
