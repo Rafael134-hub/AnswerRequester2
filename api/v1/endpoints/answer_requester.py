@@ -8,10 +8,19 @@ from models.requester_model import AnswerRequestModel
 from schemas.requester_schema import ApiRequesterSchema, ApiRequesterCreateSchema
 from core.deps import get_session
 import httpx
+import mistune
+import re
 
 router = APIRouter()
 
 @router.post("/requests", status_code=status.HTTP_201_CREATED, response_model=ApiRequesterSchema)
+
+def converter_markdown(texto_markdown):
+    markdown  = mistune.create_markdown(renderer=mistune.Renderer())
+    texto_convertido = markdown(texto_markdown)
+    texto_final_formatado = re.sub(r'[^\w\s,;.!?]', '', texto_convertido)
+    return texto_final_formatado
+
 async def post_request(answerRequest: ApiRequesterCreateSchema, db: AsyncSession = Depends(get_session)):
     async with httpx.AsyncClient() as client:
         try:
@@ -23,9 +32,7 @@ async def post_request(answerRequest: ApiRequesterCreateSchema, db: AsyncSession
             token_response = await client.post("http://cap-ets.br.bosch.com:5678/v1/auth/token", data=form_data, headers=headersLogin)
             token_response.raise_for_status()
             token_data = token_response.json()
-            print(f"TOKEN RESPONDE !!!: {token_data}")
             token = token_data.get("access_token", str(token_data))
-            print(f"TOKEN 2 !!!: {token}")
             rag_headers = {
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json"
@@ -34,20 +41,14 @@ async def post_request(answerRequest: ApiRequesterCreateSchema, db: AsyncSession
             answer_payload = {"question": answerRequest.request, "file_type": answerRequest.file_type}
             
             answer_payload = json.dumps(answer_payload)
-            
-            print(f"payload: {answer_payload}")
             response = requests.post("http://cap-ets.br.bosch.com:5678/v1/rag/ask", data=answer_payload, headers=rag_headers)
-            # response = await client.post("http://cap-ets.br.bosch.com:5678/v1/rag/ask", headers=rag_headers, json=answer_payload)
-            print(f"RESPONDE PORRA!: {response}")
-            print(f"RESPONDE PORRA!: {response.text}")
-            # response.raise_for_status()
             external_data = response.json()
 
         except Exception as e:
             print(f"EXCEPTION : {e}")
             raise HTTPException(status_code=502, detail=f"Answer API call for authentication failed: {str(e)}")
         
-    answer_text_response = external_data.get("answer", str(external_data))
+    answer_text_response = converter_markdown(external_data.get("answer", str(external_data)))
     
     answer_request_data = AnswerRequestModel(
         request =  answerRequest.request,
