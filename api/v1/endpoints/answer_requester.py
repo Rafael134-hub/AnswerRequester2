@@ -8,15 +8,16 @@ from models.requester_model import AnswerRequestModel
 from schemas.requester_schema import ApiRequesterSchema, ApiRequesterCreateSchema
 from core.deps import get_session
 import httpx
-import mistune
+from mdclense.parser import MarkdownParser
 import re
 
 router = APIRouter()
 
 def converter_markdown(texto_markdown):
-    markdown  = mistune.create_markdown(renderer=mistune.Renderer())
-    texto_convertido = markdown(texto_markdown)
-    texto_final_formatado = re.sub(r'[^\w\s,;.!?]', '', texto_convertido)
+    parser = MarkdownParser()
+    texto_convertido = parser.parse(texto_markdown)
+    texto_final_formatado = texto_convertido.replace("\n", " ")
+    texto_final_formatado = re.sub(r'[^\w\s,;.!?]', '', texto_final_formatado)
     return texto_final_formatado
 
 @router.post("/requests", status_code=status.HTTP_201_CREATED, response_model=ApiRequesterSchema)
