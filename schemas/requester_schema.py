@@ -16,3 +16,10 @@ class ApiRequesterSchema(SCBaseModel):
 
     class Config:
         orm_mode = True
+        
+
+class RespostaInput(SCBaseModel):
+    texto: str
+    
+    class Config :
+        orm_mode = True

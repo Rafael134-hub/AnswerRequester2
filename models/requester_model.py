@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Integer, Text, func
+from sqlalchemy import Column, String, DateTime, Integer, Text, func , Mapped , mapped_column
 from core.database import Base
 
 class AnswerRequestModel(Base):
@@ -9,3 +9,9 @@ class AnswerRequestModel(Base):
     file_type = Column(String(255), nullable=False)
     date_time = Column(DateTime(timezone=True), server_default=func.now())
     response = Column(Text, nullable=False)
+    
+class RespostaModel(Base):
+    __tablename__ = "resposta"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    texto: Mapped[str] = mapped_column(String)
